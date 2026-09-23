@@ -27,19 +27,22 @@ import kotlinx.coroutines.isActive
 
 // =======================================================
 // ⚙️ НАЛАШТУВАННЯ ТА ТЕКСТИ ДОДАТКА
+// Змінюйте будь-який текст у лапках або параметри тут:
 // =======================================================
 object AppStrings {
     var appTitle = "KERIA APP"
     
-    // Повідомлення помилок
-    var dialogTitle = "System Error"
-    var dialogMessage = "An unexpected meow error occurred in Keria App!"
+    // Тексти діалогового вікна помилки
+    var dialogTitle = "керя лох"
+    var dialogMessage = "керя лох"
+    var dialogOkButton = "Да"
+    var dialogCloseButton = "X"
     
     // Звук та інтервал (500 мс = 0.5 секунди)
     var soundResourceName = "meow"
     var errorIntervalMs = 500L 
     
-    // Назва файлу зображення фону в res/drawable (без розширення .png/.jpg)
+    // Назва файлу зображення фону в res/drawable (без .png / .jpg)
     var bgImageName = "bg_image"
 }
 
@@ -59,12 +62,15 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KeriaMainScreen() {
     val context = LocalContext.current
-    var errorCount by remember { mutableIntStateOf(0) }
+    // Список активних діалогів (зберігся ID кожного вікна)
+    val activeDialogs = remember { mutableStateListOf<Int>() }
 
-    // Безперервний спаун помилок кожні 0.5 секунди
+    // Безперервний спаун помилок кожні 0.5 секунди по всьому екрану
     LaunchedEffect(Unit) {
+        var idCounter = 0
         while (isActive) {
-            errorCount++
+            idCounter++
+            activeDialogs.add(idCounter)
             playSound(context)
             delay(AppStrings.errorIntervalMs)
         }
@@ -81,7 +87,7 @@ fun KeriaMainScreen() {
                 contentScale = ContentScale.Crop
             )
         } else {
-            // Запасний фон (бірюзовий), якщо зображення ще не додано
+            // Запасний фон (бірюзовий Windows 95), якщо картинку ще не додано
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -89,26 +95,29 @@ fun KeriaMainScreen() {
             )
         }
 
-        // 2. НАКОПИЧЕНІ ПОМИЛКИ
-        for (i in 1..errorCount) {
-            RetroErrorDialog(index = i)
+        // 2. ВІДОБРАЖЕННЯ ВІКОН ПОМИЛОК ПО ВСЬОМУ ЕКРАНУ
+        for (dialogId in activeDialogs) {
+            RetroErrorDialog(
+                index = dialogId,
+                onDismiss = { activeDialogs.remove(dialogId) }
+            )
         }
     }
 }
 
 @Composable
-fun RetroErrorDialog(index: Int) {
-    // Невеликий хаотичний зсув кожного наступного вікна, щоб вони заповнювали екран
-    val offsetX = ((index * 17) % 140 - 70).dp
-    val offsetY = ((index * 31) % 240 - 120).dp
+fun RetroErrorDialog(index: Int, onDismiss: () -> Unit) {
+    // Широкий розмах зсуву, щоб помилки з'являлися по всьому екрану (зверху, знизу, зліва, справа)
+    val offsetX = (((index * 37) % 260) - 130).dp
+    val offsetY = (((index * 73) % 560) - 280).dp
 
-    Dialog(onDismissRequest = { /* Неможливо закрити */ }) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RectangleShape,
-            color = Color(0xFFC0C0C0), // Ретро сірий фон вікна
+            color = Color(0xFFC0C0C0), // Ретро сірий фон
             modifier = Modifier
                 .offset(x = offsetX, y = offsetY)
-                .fillMaxWidth(0.85f)
+                .fillMaxWidth(0.82f)
                 .border(2.dp, Color.White, RectangleShape)
                 .padding(2.dp)
         ) {
@@ -117,12 +126,13 @@ fun RetroErrorDialog(index: Int) {
                     .background(Color(0xFFC0C0C0))
                     .padding(4.dp)
             ) {
-                // Ретро синій заголовок вікна (БЕЗ КНОПКИ ЗАКРИТТЯ "X")
+                // Ретро синій заголовок вікна з кнопкою закриття "X"
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color(0xFF000080))
                         .padding(horizontal = 6.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -132,6 +142,15 @@ fun RetroErrorDialog(index: Int) {
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace
                     )
+                    Button(
+                        onClick = onDismiss,
+                        shape = RectangleShape,
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0))
+                    ) {
+                        Text(AppStrings.dialogCloseButton, color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -157,18 +176,40 @@ fun RetroErrorDialog(index: Int) {
                     Text(
                         text = AppStrings.dialogMessage,
                         color = Color.Black,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Кнопка OK
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Button(
+                        onClick = onDismiss,
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0)),
+                        modifier = Modifier.border(1.dp, Color.Black, RectangleShape)
+                    ) {
+                        Text(
+                            text = AppStrings.dialogOkButton,
+                            color = Color.Black,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
     }
 }
 
-// Функція відтворення звуку
+// Допоміжна функція відтворення звуку meow.mp3
 private fun playSound(context: android.content.Context) {
     try {
         val rawId = context.resources.getIdentifier(AppStrings.soundResourceName, "raw", context.packageName)
