@@ -20,6 +20,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+
+// =======================================================
+// ⚙️ НАЛАШТУВАННЯ ТА ТЕКСТИ ДОДАТКА
+// Змінюйте будь-який текст у лапках або налаштування тут:
+// =======================================================
+object AppStrings {
+    var appTitle = "KERIA APP"
+    
+    // Таймер
+    var timerPrefix = "Timer: "
+    var timerSuffix = " s"
+    var defaultTimerSeconds = 10
+    
+    // Кнопки головного екрана
+    var startTimerButton = "Start Timer"
+    var triggerDialogButton = "Trigger Dialog"
+    
+    // Діалогове вікно (Error Dialog)
+    var dialogTitle = "System Error"
+    var dialogCloseButton = "X"
+    var dialogMessage = "An unexpected meow error occurred in Keria App!"
+    var dialogOkButton = "OK"
+    
+    // Налаштування звуку
+    var soundResourceName = "meow" // Назва аудіофайлу в res/raw (без .mp3)
+    var soundRepeatIntervalMs = 2000L // Інтервал повторення звуку у мілісекундах (2000 мс = 2 сек)
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,8 +69,16 @@ class MainActivity : ComponentActivity() {
 fun KeriaMainScreen() {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
-    var timerSeconds by remember { mutableStateOf(10) }
+    var timerSeconds by remember { mutableStateOf(AppStrings.defaultTimerSeconds) }
     var isTimerRunning by remember { mutableStateOf(false) }
+
+    // Безперервний цикл: відтворення звуку кожні 2 секунди
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            playSound(context)
+            delay(AppStrings.soundRepeatIntervalMs)
+        }
+    }
 
     // Логіка відліку таймера
     LaunchedEffect(isTimerRunning, timerSeconds) {
@@ -52,18 +88,7 @@ fun KeriaMainScreen() {
         } else if (isTimerRunning && timerSeconds == 0) {
             isTimerRunning = false
             showDialog = true
-            
-            // Відтворення meow.mp3
-            try {
-                val rawId = context.resources.getIdentifier("meow", "raw", context.packageName)
-                if (rawId != 0) {
-                    val mediaPlayer = MediaPlayer.create(context, rawId)
-                    mediaPlayer?.start()
-                    mediaPlayer?.setOnCompletionListener { mp -> mp.release() }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            playSound(context)
         }
     }
 
@@ -75,7 +100,7 @@ fun KeriaMainScreen() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "KERIA APP",
+            text = AppStrings.appTitle,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -86,7 +111,7 @@ fun KeriaMainScreen() {
 
         // Відображення таймера
         Text(
-            text = "Timer: $timerSeconds s",
+            text = "${AppStrings.timerPrefix}$timerSeconds${AppStrings.timerSuffix}",
             fontSize = 22.sp,
             color = Color.Yellow,
             fontFamily = FontFamily.Monospace
@@ -98,33 +123,23 @@ fun KeriaMainScreen() {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
                 onClick = {
-                    if (timerSeconds == 0) timerSeconds = 10
+                    if (timerSeconds == 0) timerSeconds = AppStrings.defaultTimerSeconds
                     isTimerRunning = true
                 },
                 shape = RectangleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0))
             ) {
-                Text("Start Timer", color = Color.Black, fontFamily = FontFamily.Monospace)
+                Text(AppStrings.startTimerButton, color = Color.Black, fontFamily = FontFamily.Monospace)
             }
 
             Button(
                 onClick = {
                     showDialog = true
-                    try {
-                        val rawId = context.resources.getIdentifier("meow", "raw", context.packageName)
-                        if (rawId != 0) {
-                            val mediaPlayer = MediaPlayer.create(context, rawId)
-                            mediaPlayer?.start()
-                            mediaPlayer?.setOnCompletionListener { mp -> mp.release() }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
                 },
                 shape = RectangleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0))
             ) {
-                Text("Trigger Dialog", color = Color.Black, fontFamily = FontFamily.Monospace)
+                Text(AppStrings.triggerDialogButton, color = Color.Black, fontFamily = FontFamily.Monospace)
             }
         }
     }
@@ -163,7 +178,7 @@ fun RetroErrorDialog(onDismiss: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "System Error",
+                        text = AppStrings.dialogTitle,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
@@ -176,7 +191,7 @@ fun RetroErrorDialog(onDismiss: () -> Unit) {
                         modifier = Modifier.size(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0))
                     ) {
-                        Text("X", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(AppStrings.dialogCloseButton, color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -201,7 +216,7 @@ fun RetroErrorDialog(onDismiss: () -> Unit) {
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Text(
-                        text = "An unexpected meow error occurred in Keria App!",
+                        text = AppStrings.dialogMessage,
                         color = Color.Black,
                         fontSize = 13.sp,
                         fontFamily = FontFamily.Monospace
@@ -222,7 +237,7 @@ fun RetroErrorDialog(onDismiss: () -> Unit) {
                         modifier = Modifier.border(1.dp, Color.Black, RectangleShape)
                     ) {
                         Text(
-                            text = "OK",
+                            text = AppStrings.dialogOkButton,
                             color = Color.Black,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold
@@ -233,5 +248,19 @@ fun RetroErrorDialog(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+    }
+}
+
+// Допоміжна функція відтворення звуку
+private fun playSound(context: android.content.Context) {
+    try {
+        val rawId = context.resources.getIdentifier(AppStrings.soundResourceName, "raw", context.packageName)
+        if (rawId != 0) {
+            val mediaPlayer = MediaPlayer.create(context, rawId)
+            mediaPlayer?.start()
+            mediaPlayer?.setOnCompletionListener { mp -> mp.release() }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
