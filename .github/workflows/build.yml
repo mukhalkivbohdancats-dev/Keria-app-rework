@@ -21,11 +21,35 @@ jobs:
 
       - name: Generate Android structure and build configs
         run: |
-          # Видаляємо всі існуючі некоректні імпорти RectangleShape
-          sed -i '/^import .*RectangleShape$/d' MainActivity.kt
+          # Надійна нормалізація імпортів у MainActivity.kt за допомогою Python
+          python3 - <<'PY'
+          from pathlib import Path
 
-          # Додаємо правильний імпорт Compose Foundation після оголошення package
-          sed -i '/^package /a import androidx.compose.foundation.shape.RectangleShape' MainActivity.kt
+          path = Path("MainActivity.kt")
+          lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+
+          # Видаляємо всі наявні імпорти RectangleShape незалежно від форматування чи CRLF
+          lines = [
+              line for line in lines
+              if not (
+                  line.strip().startswith("import ")
+                  and "RectangleShape" in line
+              )
+          ]
+
+          # Вставляємо точний і канонічний імпорт одразу після оголошення package
+          for index, line in enumerate(lines):
+              if line.strip().startswith("package "):
+                  lines.insert(
+                      index + 1,
+                      "import androidx.compose.foundation.shape.RectangleShape"
+                  )
+                  break
+          else:
+              raise SystemExit("No package declaration found in MainActivity.kt")
+
+          path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
 
           # Визначаємо пакет із MainActivity.kt
           PKG=$(grep -oP 'package \K[^\s]+' MainActivity.kt || echo "com.example.keriaapp")
