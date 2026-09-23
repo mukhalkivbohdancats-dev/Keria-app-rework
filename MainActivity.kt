@@ -39,10 +39,10 @@ object AppStrings {
     var triggerDialogButton = "Trigger Dialog"
     
     // Діалогове вікно (Error Dialog)
-    var dialogTitle = "System Error"
+    var dialogTitle = "керя лох"
     var dialogCloseButton = "X"
-    var dialogMessage = "An unexpected meow error occurred in Keria App!"
-    var dialogOkButton = "OK"
+    var dialogMessage = "керя лох"
+    var dialogOkButton = "да"
     
     // Налаштування звуку
     var soundResourceName = "meow" // Назва аудіофайлу в res/raw (без .mp3)
