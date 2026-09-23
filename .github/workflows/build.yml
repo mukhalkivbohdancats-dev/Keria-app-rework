@@ -21,6 +21,11 @@ jobs:
 
       - name: Generate Android structure and build configs
         run: |
+          # Автоматично додаємо імпорт RectangleShape, якщо його немає у MainActivity.kt
+          if ! grep -q "import androidx.compose.foundation.shape.RectangleShape" MainActivity.kt; then
+            sed -i '/^package /a import androidx.compose.foundation.shape.RectangleShape' MainActivity.kt
+          fi
+
           # Визначаємо пакет із MainActivity.kt
           PKG=$(grep -oP 'package \K[^\s]+' MainActivity.kt || echo "com.example.keriaapp")
           PKG_PATH=$(echo $PKG | tr '.' '/')
@@ -57,7 +62,7 @@ jobs:
           </manifest>
           EOF
 
-          # Генеруємо app/build.gradle з підтримкою Jetpack Compose
+          # Генеруємо app/build.gradle з підтримкою Compose та Foundation
           cat <<EOF > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -101,6 +106,7 @@ jobs:
 
               implementation platform('androidx.compose:compose-bom:2024.02.02')
               implementation 'androidx.activity:activity-compose:1.8.2'
+              implementation 'androidx.compose.foundation:foundation'
               implementation 'androidx.compose.ui:ui'
               implementation 'androidx.compose.ui:ui-graphics'
               implementation 'androidx.compose.ui:ui-tooling-preview'
