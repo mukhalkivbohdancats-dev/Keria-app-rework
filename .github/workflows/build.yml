@@ -39,12 +39,12 @@ jobs:
           android.nonTransitiveRClass=true
           EOF
 
-          # Генеруємо AndroidManifest.xml
+          # Генеруємо AndroidManifest.xml із назвою додатка keria-app
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="$PKG">
               <application
-                  android:label="KeriaApp"
+                  android:label="keria-app"
                   android:icon="@android:drawable/sym_def_app_icon"
                   android:theme="@android:style/Theme.Material.Light.NoActionBar">
                   <activity android:name=".MainActivity" android:exported="true">
@@ -57,7 +57,7 @@ jobs:
           </manifest>
           EOF
 
-          # Генеруємо app/build.gradle
+          # Генеруємо app/build.gradle з підтримкою Jetpack Compose
           cat <<EOF > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -76,10 +76,19 @@ jobs:
                   versionName "1.0"
               }
 
+              buildFeatures {
+                  compose true
+              }
+
+              composeOptions {
+                  kotlinCompilerExtensionVersion '1.5.10'
+              }
+
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
               }
+
               kotlinOptions {
                   jvmTarget = '17'
               }
@@ -89,6 +98,16 @@ jobs:
               implementation 'androidx.core:core-ktx:1.12.0'
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.11.0'
+
+              implementation platform('androidx.compose:compose-bom:2024.02.02')
+              implementation 'androidx.activity:activity-compose:1.8.2'
+              implementation 'androidx.compose.ui:ui'
+              implementation 'androidx.compose.ui:ui-graphics'
+              implementation 'androidx.compose.ui:ui-tooling-preview'
+              implementation 'androidx.compose.material3:material3'
+              implementation 'androidx.compose.material:material'
+
+              debugImplementation 'androidx.compose.ui:ui-tooling'
           }
           EOF
 
@@ -122,7 +141,7 @@ jobs:
                   mavenCentral()
               }
           }
-          rootProject.name = "KeriaApp"
+          rootProject.name = "keria-app"
           include ':app'
           EOF
 
@@ -137,5 +156,5 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
+          name: keria-app
           path: app/build/outputs/apk/debug/app-debug.apk
