@@ -21,29 +21,35 @@ jobs:
 
       - name: Generate Android structure and build configs
         run: |
-          # Надійна нормалізація імпортів у MainActivity.kt за допомогою Python
+          # Нормалізація коду через Python: заміна RectangleShape на RoundedCornerShape(0.dp)
           python3 - <<'PY'
           from pathlib import Path
 
           path = Path("MainActivity.kt")
-          lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+          source = path.read_text(encoding="utf-8", errors="ignore")
 
-          # Видаляємо всі наявні імпорти RectangleShape незалежно від форматування чи CRLF
-          lines = [
-              line for line in lines
-              if not (
-                  line.strip().startswith("import ")
-                  and "RectangleShape" in line
-              )
-          ]
+          # Видаляємо будь-які імпорти RectangleShape
+          source = "\n".join(
+              line for line in source.splitlines()
+              if not (line.strip().startswith("import ") and "RectangleShape" in line)
+          )
 
-          # Вставляємо точний і канонічний імпорт одразу після оголошення package
+          # Замінюємо всі використання RectangleShape на RoundedCornerShape(0.dp)
+          source = source.replace("RectangleShape", "RoundedCornerShape(0.dp)")
+
+          lines = source.splitlines()
+
+          # Додаємо необхідні імпорти після оголошення package
           for index, line in enumerate(lines):
               if line.strip().startswith("package "):
-                  lines.insert(
-                      index + 1,
-                      "import androidx.compose.foundation.shape.RectangleShape"
-                  )
+                  imports = [
+                      "import androidx.compose.foundation.shape.RoundedCornerShape",
+                      "import androidx.compose.ui.unit.dp",
+                  ]
+
+                  for offset, import_line in enumerate(imports, start=1):
+                      if import_line not in lines:
+                          lines.insert(index + offset, import_line)
                   break
           else:
               raise SystemExit("No package declaration found in MainActivity.kt")
