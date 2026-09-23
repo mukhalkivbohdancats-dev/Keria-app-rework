@@ -21,21 +21,22 @@ jobs:
 
       - name: Generate Android structure and build configs
         run: |
-          # Автоматично додаємо імпорт RectangleShape, якщо його немає у MainActivity.kt
-          if ! grep -q "import androidx.compose.foundation.shape.RectangleShape" MainActivity.kt; then
-            sed -i '/^package /a import androidx.compose.foundation.shape.RectangleShape' MainActivity.kt
-          fi
+          # Видаляємо всі існуючі некоректні імпорти RectangleShape
+          sed -i '/^import .*RectangleShape$/d' MainActivity.kt
+
+          # Додаємо правильний імпорт Compose Foundation після оголошення package
+          sed -i '/^package /a import androidx.compose.foundation.shape.RectangleShape' MainActivity.kt
 
           # Визначаємо пакет із MainActivity.kt
           PKG=$(grep -oP 'package \K[^\s]+' MainActivity.kt || echo "com.example.keriaapp")
-          PKG_PATH=$(echo $PKG | tr '.' '/')
+          PKG_PATH=$(echo "$PKG" | tr '.' '/')
 
           # Створюємо необхідну структуру папок проєкту
-          mkdir -p app/src/main/java/$PKG_PATH
+          mkdir -p "app/src/main/java/$PKG_PATH"
           mkdir -p app/src/main/res/raw
 
           # Переміщуємо вхідні файли в створені папки
-          cp MainActivity.kt app/src/main/java/$PKG_PATH/
+          cp MainActivity.kt "app/src/main/java/$PKG_PATH/"
           cp meow.mp3 app/src/main/res/raw/
 
           # Генеруємо gradle.properties для AndroidX
