@@ -4,6 +4,7 @@ import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -13,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,29 +27,20 @@ import kotlinx.coroutines.isActive
 
 // =======================================================
 // ⚙️ НАЛАШТУВАННЯ ТА ТЕКСТИ ДОДАТКА
-// Змінюйте будь-який текст у лапках або налаштування тут:
 // =======================================================
 object AppStrings {
     var appTitle = "KERIA APP"
     
-    // Таймер
-    var timerPrefix = "Timer: "
-    var timerSuffix = " s"
-    var defaultTimerSeconds = 10
+    // Повідомлення помилок
+    var dialogTitle = "System Error"
+    var dialogMessage = "An unexpected meow error occurred in Keria App!"
     
-    // Кнопки головного екрана
-    var startTimerButton = "Start Timer"
-    var triggerDialogButton = "Trigger Dialog"
+    // Звук та інтервал (500 мс = 0.5 секунди)
+    var soundResourceName = "meow"
+    var errorIntervalMs = 500L 
     
-    // Діалогове вікно (Error Dialog)
-    var dialogTitle = "керя лох"
-    var dialogCloseButton = "X"
-    var dialogMessage = "керя лох"
-    var dialogOkButton = "да"
-    
-    // Налаштування звуку
-    var soundResourceName = "meow" // Назва аудіофайлу в res/raw (без .mp3)
-    var soundRepeatIntervalMs = 2000L // Інтервал повторення звуку у мілісекундах (2000 мс = 2 сек)
+    // Назва файлу зображення фону в res/drawable (без розширення .png/.jpg)
+    var bgImageName = "bg_image"
 }
 
 class MainActivity : ComponentActivity() {
@@ -54,10 +48,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF008080) // Ретро бірюзовий фон (Windows 95/98)
-                ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
                     KeriaMainScreen()
                 }
             }
@@ -68,98 +59,56 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun KeriaMainScreen() {
     val context = LocalContext.current
-    var showDialog by remember { mutableStateOf(false) }
-    var timerSeconds by remember { mutableStateOf(AppStrings.defaultTimerSeconds) }
-    var isTimerRunning by remember { mutableStateOf(false) }
+    var errorCount by remember { mutableIntStateOf(0) }
 
-    // Безперервний цикл: відтворення звуку кожні 2 секунди
+    // Безперервний спаун помилок кожні 0.5 секунди
     LaunchedEffect(Unit) {
         while (isActive) {
+            errorCount++
             playSound(context)
-            delay(AppStrings.soundRepeatIntervalMs)
+            delay(AppStrings.errorIntervalMs)
         }
     }
 
-    // Логіка відліку таймера
-    LaunchedEffect(isTimerRunning, timerSeconds) {
-        if (isTimerRunning && timerSeconds > 0) {
-            delay(1000L)
-            timerSeconds--
-        } else if (isTimerRunning && timerSeconds == 0) {
-            isTimerRunning = false
-            showDialog = true
-            playSound(context)
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 1. ФОНОВЕ ЗОБРАЖЕННЯ
+        val bgId = context.resources.getIdentifier(AppStrings.bgImageName, "drawable", context.packageName)
+        if (bgId != 0) {
+            Image(
+                painter = painterResource(id = bgId),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            // Запасний фон (бірюзовий), якщо зображення ще не додано
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF008080))
+            )
         }
-    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = AppStrings.appTitle,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            fontFamily = FontFamily.Monospace
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Відображення таймера
-        Text(
-            text = "${AppStrings.timerPrefix}$timerSeconds${AppStrings.timerSuffix}",
-            fontSize = 22.sp,
-            color = Color.Yellow,
-            fontFamily = FontFamily.Monospace
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Кнопки управління
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = {
-                    if (timerSeconds == 0) timerSeconds = AppStrings.defaultTimerSeconds
-                    isTimerRunning = true
-                },
-                shape = RectangleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0))
-            ) {
-                Text(AppStrings.startTimerButton, color = Color.Black, fontFamily = FontFamily.Monospace)
-            }
-
-            Button(
-                onClick = {
-                    showDialog = true
-                },
-                shape = RectangleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0))
-            ) {
-                Text(AppStrings.triggerDialogButton, color = Color.Black, fontFamily = FontFamily.Monospace)
-            }
+        // 2. НАКОПИЧЕНІ ПОМИЛКИ
+        for (i in 1..errorCount) {
+            RetroErrorDialog(index = i)
         }
-    }
-
-    // Ретро діалог помилки
-    if (showDialog) {
-        RetroErrorDialog(
-            onDismiss = { showDialog = false }
-        )
     }
 }
 
 @Composable
-fun RetroErrorDialog(onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
+fun RetroErrorDialog(index: Int) {
+    // Невеликий хаотичний зсув кожного наступного вікна, щоб вони заповнювали екран
+    val offsetX = ((index * 17) % 140 - 70).dp
+    val offsetY = ((index * 31) % 240 - 120).dp
+
+    Dialog(onDismissRequest = { /* Неможливо закрити */ }) {
         Surface(
             shape = RectangleShape,
-            color = Color(0xFFC0C0C0), // Ретро сірий фон
+            color = Color(0xFFC0C0C0), // Ретро сірий фон вікна
             modifier = Modifier
-                .fillMaxWidth()
+                .offset(x = offsetX, y = offsetY)
+                .fillMaxWidth(0.85f)
                 .border(2.dp, Color.White, RectangleShape)
                 .padding(2.dp)
         ) {
@@ -168,40 +117,30 @@ fun RetroErrorDialog(onDismiss: () -> Unit) {
                     .background(Color(0xFFC0C0C0))
                     .padding(4.dp)
             ) {
-                // Заголовок вікна
+                // Ретро синій заголовок вікна (БЕЗ КНОПКИ ЗАКРИТТЯ "X")
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF000080)) // Ретро синій заголовок
+                        .background(Color(0xFF000080))
                         .padding(horizontal = 6.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = AppStrings.dialogTitle,
+                        text = "${AppStrings.dialogTitle} #$index",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace
                     )
-                    Button(
-                        onClick = onDismiss,
-                        shape = RectangleShape,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(18.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0))
-                    ) {
-                        Text(AppStrings.dialogCloseButton, color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Вміст повідомлення
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
+                        .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -223,35 +162,13 @@ fun RetroErrorDialog(onDismiss: () -> Unit) {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Кнопка OK
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Button(
-                        onClick = onDismiss,
-                        shape = RectangleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0C0C0)),
-                        modifier = Modifier.border(1.dp, Color.Black, RectangleShape)
-                    ) {
-                        Text(
-                            text = AppStrings.dialogOkButton,
-                            color = Color.Black,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
 }
 
-// Допоміжна функція відтворення звуку
+// Функція відтворення звуку
 private fun playSound(context: android.content.Context) {
     try {
         val rawId = context.resources.getIdentifier(AppStrings.soundResourceName, "raw", context.packageName)
